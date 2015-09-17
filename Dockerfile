@@ -1,8 +1,6 @@
-
 FROM debian:wheezy
 
-# feel free to change this ;)
-MAINTAINER Andrew Stilliard <andrew.stilliard@gmail.com>
+MAINTAINER Zain ul Abideen <zain@qubit.com>
 
 # properly setup debian sources
 ENV DEBIAN_FRONTEND noninteractive
@@ -41,7 +39,12 @@ RUN apt-mark hold pure-ftpd pure-ftpd-common
 RUN groupadd ftpgroup
 RUN useradd -g ftpgroup -d /dev/null -s /etc ftpuser
 
-# startup
-CMD /usr/sbin/pure-ftpd -c 50 -C 10 -l puredb:/etc/pure-ftpd/pureftpd.pdb -E -j -R
+# generate self-signed certificate and private key
+RUN mkdir -p /etc/ssl/private/
+RUN openssl req -x509 -nodes -days 7300 -newkey rsa:2048 -keyout /etc/ssl/private/pure-ftpd.pem -out /etc/ssl/private/pure-ftpd.pem -subj "/C=_/ST=_/L=_/O=_/OU=_/CN=_/emailAddress=_"
+RUN chmod 600 /etc/ssl/private/pure-ftpd.pem
 
-EXPOSE 21/tcp
+# startup
+CMD /usr/sbin/pure-ftpd --verboselog --tls=1 -p 50000:50009 -c 5 -C 10 -l puredb:/etc/pure-ftpd/pureftpd.pdb -E -j -R
+
+EXPOSE 21/tcp 50000-50009

@@ -2,31 +2,34 @@
 Docker Pure-ftpd Server
 ============================
 
-Pull down with docker:
-```bash
-sudo docker pull stilliard/pure-ftpd
-```
+This includes both a plain FTP server and a FTP-over-SSL/TLS (FTPS) server.
 
 ----------------------------------------
 
-**My advice is to extend this image to make any changes.**  
-This is because rebuilding the entire docker image via a fork can be slow as it rebuilds the entire pure-ftpd package from source. 
+**A self-signed certificate and a private key is generated to use FTP-over-SSL/TLS (FTPS).**
 
-Instead you can create a new project with a `DOCKERFILE` like so:
+You need to replace the underscores in the following line in the `Dockerfile` with appropriate values:
 
 ```
-FROM stilliard/pure-ftpd
-
-# e.g. you could change the defult command run:
-CMD /usr/sbin/pure-ftpd -c 30 -C 5 -l puredb:/etc/pure-ftpd/pureftpd.pdb -E -j -R 
+# generate self-signed certificate and private key
+RUN mkdir -p /etc/ssl/private/
+RUN openssl req -x509 -nodes -days 7300 -newkey rsa:2048 -keyout /etc/ssl/private/pure-ftpd.pem -out /etc/ssl/private/pure-ftpd.pem -subj "/C=_/ST=_/L=_/O=_/OU=_/CN=_/emailAddress=_"
 ```
+
+- **/C=** 2 letter ISO country code
+- **/ST=** State
+- **/L=** Location, city
+- **/O=** Organization
+- **/OU=** Organizational Unit, Department
+- **/CN=** Common Name, for a website certificate this is the FQDN
+- **/emailAddress=** Email ID
 
 ----------------------------------------
 
 Starting it 
 ------------------------------
 
-`docker run -d -p 21:21 --name ftpd_server stilliard/pure-ftpd `
+`docker run -d -p 21:21 -p 50000-50009:50000-50009 --name ftpd_server zaininfo/pure-ftpd `
 
 Operating it
 ------------------------------
@@ -60,7 +63,11 @@ Default pure-ftpd options explained
 
 ```
 /usr/sbin/pure-ftpd # path to pure-ftpd executable
--c 50 # --maxclientsnumber (no more than 50 people at once)
+--verboselog (logs all actions to either /var/log/messages or a separate pureftpd.log)
+--tls=1 (clients can connect either the traditional way or through an
+SSL/TLS layer)
+-p 50000:50009 (open a port range to the FTP server)
+-c 5 # --maxclientsnumber (no more than 5 people at once)
 -C 10 # --maxclientsperip (no more than 10 requests from the same ip)
 -l puredb:/etc/pure-ftpd/pureftpd.pdb # --login (login file for virtual users)
 -E # --noanonymous (only real users)
@@ -76,7 +83,7 @@ For more information please see `man pure-ftpd`, or visit: https://www.pureftpd.
 Development (via git clone)
 ```bash
 # Clone the repo
-git clone https://github.com/stilliard/docker-pure-ftpd.git
+git clone https://github.com/zaininfo/docker-pure-ftpd.git
 cd docker-pure-ftpd
 # Build the image
 make build
